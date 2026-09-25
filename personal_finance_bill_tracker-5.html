@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rs₹tracker — Personal Finance</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#fff; --text:#17202a; --muted:#6b7280;
+    --green:#10b981; --green-dark:#059669; --blue:#3b82f6; --blue-soft:#eaf3ff;
+    --border:#e5e7eb; --danger:#ef4444; --orange:#f59e0b; --shadow:0 8px 28px rgba(15,23,42,.07);
+  }
+  *{box-sizing:border-box} body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+  .app{max-width:1180px;margin:auto;padding:28px 18px 50px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:24px}
+  h1{font-size:clamp(24px,4vw,34px);margin:0 0 5px;letter-spacing:-.6px}.subtitle{color:var(--muted);margin:0}
+  button{border:0;border-radius:10px;padding:11px 15px;font-weight:700;cursor:pointer;font-size:14px}
+  .btn-green{background:var(--green);color:#fff}.btn-green:hover{background:var(--green-dark)}
+  .btn-light{background:#eef2f7;color:#374151}.btn-danger{background:#fee2e2;color:#b91c1c;padding:8px 10px}
+  .dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+  .stat .label{font-size:13px;color:var(--muted);font-weight:600}.stat .value{font-size:25px;font-weight:800;margin-top:8px}.stat.green .value{color:var(--green-dark)}
+  .stat.blue .value{color:var(--blue)} .stat.warn .value{color:var(--orange)} .stat.danger .value{color:var(--danger)}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:18px}
+  .card h2{font-size:18px;margin:0 0 5px}.card-sub{font-size:13px;color:var(--muted);margin:0 0 18px}
+  form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}
+  label{font-size:12px;font-weight:700;color:#4b5563}input,select{width:100%;padding:11px 12px;border:1px solid #dbe0e6;border-radius:10px;background:#fff;font:inherit;outline:none}
+  input:focus,select:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,.12)}
+  .form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:2px}
+  .salary-box{display:flex;gap:10px;align-items:end}.salary-box .field{flex:1}
+  .salary-box .btn-green{min-height:43px}
+  @media(max-width:560px){.salary-box{flex-direction:column;align-items:stretch}.salary-box .btn-green{width:100%}}
+  .progress-wrap{margin-top:18px}.progress-head{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:8px}
+  .progress{height:12px;background:#e9edf2;border-radius:999px;overflow:hidden}.progress-bar{height:100%;background:linear-gradient(90deg,var(--green),#34d399);border-radius:999px;transition:width .3s}
+  .progress-bar.over{background:linear-gradient(90deg,var(--orange),var(--danger))}
+  .insight{margin-top:12px;padding:12px 14px;border-radius:11px;background:#f0fdf4;color:#166534;font-size:13px}.insight.warn{background:#fff7ed;color:#9a3412}.insight.danger{background:#fef2f2;color:#991b1b}
+  .list{display:flex;flex-direction:column;gap:9px}.row{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:12px;border:1px solid var(--border);padding:12px;border-radius:12px}
+  .row-main{min-width:0}.row-name{font-weight:750}.meta{font-size:12px;color:var(--muted);margin-top:3px}.amount{font-weight:800;white-space:nowrap}
+  .bill{background:linear-gradient(90deg,#fff,#f8fbff);border-left:4px solid var(--blue)}.paid{opacity:.68}.paid .row-name{text-decoration:line-through}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:4px 7px;border-radius:999px;background:#eef2ff;color:#4f46e5;margin-left:5px}
+  .paid-badge{background:#dcfce7;color:#166534}.empty{text-align:center;color:var(--muted);padding:22px 10px;font-size:14px}
+  .section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:15px}.month{font-size:12px;color:var(--muted)}
+  .table-scroll{overflow-x:auto}
+  .tip{font-size:12px;color:var(--muted);line-height:1.5}
+  @media(max-width:900px){.dashboard{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+  @media(max-width:560px){.app{padding:20px 12px 35px}header{align-items:flex-start;flex-direction:column}.dashboard{grid-template-columns:1fr 1fr}.stat{padding:14px}.stat .value{font-size:21px}form{grid-template-columns:1fr}.field.full,.form-actions{grid-column:auto}.form-actions{justify-content:stretch}.form-actions button{width:100%}.row{grid-template-columns:1fr auto}.row .amount{grid-column:2;grid-row:1}.row .delete,.row .paid-control{grid-column:1}.row .delete{grid-column:2;grid-row:2}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div><h1>Rs₹tracker</h1><p class="subtitle">Your monthly salary, bills & daily spending in one clean dashboard.</p></div>
+    <button class="btn-light" id="resetBtn">Reset all data</button>
+  </header>
+
+  <section class="dashboard">
+    <div class="stat"><div class="label">Fixed Salary</div><div class="value" id="salaryStat">₹0</div></div>
+    <div class="stat blue"><div class="label">Logged Bills</div><div class="value" id="billsStat">₹0</div></div>
+    <div class="stat"><div class="label">Daily Expenses</div><div class="value" id="expensesStat">₹0</div></div>
+    <div class="stat green" id="balanceCard"><div class="label">Remaining Balance</div><div class="value" id="balanceStat">₹0</div></div>
+  </section>
+
+  <div class="grid">
+    <main>
+      <section class="card">
+        <h2>Monthly salary</h2><p class="card-sub">Set your fixed monthly salary. It is the baseline for every calculation.</p>
+        <div class="salary-box">
+          <div class="field"><label for="salary">Monthly salary (₹)</label><input id="salary" type="number" min="0" step="0.01" placeholder="e.g. 50000"></div>
+          <div class="field"><label for="salaryDay">Salary received on</label><select id="salaryDay"></select></div>
+          <button class="btn-green" id="saveSalary">Fix salary</button>
+        </div>
+        <div id="salaryCycle" class="tip" style="margin-top:12px"></div>
+        <div class="progress-wrap">
+          <div class="progress-head"><span>Salary used</span><span id="progressText">0%</span></div>
+          <div class="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+          <div class="insight" id="insight">Add your salary and expenses to see your monthly insight.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head"><div><h2>Fixed monthly bills</h2><p class="card-sub">Rent, utilities, subscriptions, insurance, internet and other recurring costs.</p></div><span class="month" id="monthLabel"></span></div>
+        <form id="billForm">
+          <div class="field"><label>Bill name</label><input id="billName" required placeholder="Rent"></div>
+          <div class="field"><label>Amount (₹)</label><input id="billAmount" type="number" min="0" step="0.01" required placeholder="15000"></div>
+          <div class="field"><label>Due date</label><input id="billDue" type="date" required></div>
+          <div class="form-actions"><button class="btn-green">Add bill</button></div>
+        </form>
+        <div class="list" id="billList" style="margin-top:16px"></div>
+      </section>
+    </main>
+
+    <aside>
+      <section class="card">
+        <h2>Daily expense</h2><p class="card-sub">Log flexible spending as you go.</p>
+        <form id="expenseForm">
+          <div class="field full"><label>Expense name</label><input id="expenseName" required placeholder="Lunch"></div>
+          <div class="field"><label>Amount (₹)</label><input id="expenseAmount" type="number" min="0" step="0.01" required placeholder="250"></div>
+          <div class="field"><label>Category</label><select id="expenseCategory"><option>Food</option><option>Transport</option><option>Shopping</option><option>Entertainment</option><option>Health</option><option>Education</option><option>Other</option></select></div>
+          <div class="field"><label>Date</label><input id="expenseDate" type="date" required></div>
+          <div class="form-actions"><button class="btn-green">Add expense</button></div>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="section-head"><div><h2>Transactions</h2><p class="card-sub">Your latest daily expenses.</p></div></div>
+        <div class="list" id="expenseList"></div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+const KEY="personalFinanceTracker_v1";
+const today=()=>new Date().toISOString().slice(0,10);
+let data=JSON.parse(localStorage.getItem(KEY)||'{"salary":0,"bills":[],"expenses":[]}');
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(Number(n)||0);
+const save=()=>localStorage.setItem(KEY,JSON.stringify(data));
+
+$("salary").value=data.salary||"";
+const savedSalaryDay = Number(data.salaryDay) || 1;
+$("salaryDay").innerHTML = Array.from({length:31},(_,i)=>`<option value="${i+1}">${i+1}${[1,21,31].includes(i+1)?"st":[2,22].includes(i+1)?"nd":[3,23].includes(i+1)?"rd":"th"} of every month</option>`).join("");
+$("salaryDay").value = savedSalaryDay;
+$("expenseDate").value=today();
+$("monthLabel").textContent=new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"});
+
+$("saveSalary").onclick=()=>{
+  data.salary=Math.max(0,Number($("salary").value)||0);
+  data.salaryDay=Math.min(31,Math.max(1,Number($("salaryDay").value)||1));
+  save();render();
+};
+
+$("billForm").onsubmit=e=>{
+  e.preventDefault();
+  data.bills.push({id:crypto.randomUUID(),name:$("billName").value.trim(),amount:Number($("billAmount").value)||0,due:$("billDue").value,paid:false});
+  save();e.target.reset();render();
+};
+
+$("expenseForm").onsubmit=e=>{
+  e.preventDefault();
+  data.expenses.unshift({id:crypto.randomUUID(),name:$("expenseName").value.trim(),amount:Number($("expenseAmount").value)||0,category:$("expenseCategory").value,date:$("expenseDate").value});
+  save();e.target.reset();$("expenseDate").value=today();render();
+};
+
+$("resetBtn").onclick=()=>{
+  if(confirm("Delete salary, bills and all expenses?")){data={salary:0,bills:[],expenses:[]};save();$("salary").value="";render();}
+};
+
+
+function updateSalaryCycle(){
+  const box=$("salaryCycle");
+  const day=Math.min(31,Math.max(1,Number(data.salaryDay)||1));
+  if(!data.salary){box.textContent="Choose the date you normally receive your salary.";return;}
+  const now=new Date();
+  let year=now.getFullYear(), month=now.getMonth();
+  let targetDay=Math.min(day,new Date(year,month+1,0).getDate());
+  let next=new Date(year,month,targetDay);
+  if(now>=next){
+    month++;
+    year=month===12?year+1:year;
+    month=month%12;
+    targetDay=Math.min(day,new Date(year,month+1,0).getDate());
+    next=new Date(year,month,targetDay);
+  }
+  const startText=next.toLocaleDateString("en-IN",{day:"numeric",month:"long"});
+  const diff=Math.max(0,Math.ceil((next-now)/(1000*60*60*24)));
+  box.textContent=`Salary day: ${day}${[1,21,31].includes(day)?"st":[2,22].includes(day)?"nd":[3,23].includes(day)?"rd":"th"} of every month • Next salary: ${startText} • ${diff===0?"Today":diff+" day"+(diff===1?"":"s")+" to go"}`;
+}
+
+function render(){
+  const bills=data.bills.reduce((s,b)=>s+b.amount,0), expenses=data.expenses.reduce((s,e)=>s+e.amount,0);
+  const spent=bills+expenses,balance=data.salary-spent, pct=data.salary?Math.round(spent/data.salary*100):0;
+  $("salaryStat").textContent=money(data.salary);$("billsStat").textContent=money(bills);$("expensesStat").textContent=money(expenses);$("balanceStat").textContent=money(balance);
+  $("balanceCard").className="stat "+(balance<0?"danger":data.salary&&balance/data.salary<.15?"warn":"green");
+  $("progressText").textContent=(pct>999?999:pct)+"%";$("progressBar").style.width=Math.min(100,Math.max(0,pct))+"%";$("progressBar").classList.toggle("over",pct>85);
+  const insight=$("insight");
+  if(!data.salary) {insight.textContent="Set your fixed salary to activate your budget insight.";insight.className="insight";}
+  else if(balance<0){insight.textContent=`You are ${money(Math.abs(balance))} over your monthly salary. Review bills or daily spending.`;insight.className="insight danger";}
+  else if(pct>=85){insight.textContent=`You've used ${pct}% of your salary. Only ${money(balance)} remains.`;insight.className="insight warn";}
+  else{insight.textContent=`You have ${money(balance)} left after ${money(spent)} of logged spending.`;insight.className="insight";}
+
+  $("billList").innerHTML=data.bills.length?data.bills.map(b=>`
+    <div class="row bill ${b.paid?'paid':''}">
+      <div class="row-main"><div class="row-name">${esc(b.name)} ${b.paid?'<span class="badge paid-badge">Paid</span>':''}</div><div class="meta">Due ${formatDate(b.due)}</div></div>
+      <div class="amount">${money(b.amount)}</div>
+      <label class="paid-control" style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" ${b.paid?'checked':''} onchange="toggleBill('${b.id}')"> Paid</label>
+      <button class="btn-danger delete" onclick="deleteBill('${b.id}')">Delete</button>
+    </div>`).join(""):'<div class="empty">No bills added yet.</div>';
+
+  $("expenseList").innerHTML=data.expenses.length?data.expenses.map(x=>`
+    <div class="row">
+      <div class="row-main"><div class="row-name">${esc(x.name)} <span class="badge">${esc(x.category)}</span></div><div class="meta">${formatDate(x.date)}</div></div>
+      <div class="amount">${money(x.amount)}</div><button class="btn-danger delete" onclick="deleteExpense('${x.id}')">Delete</button>
+    </div>`).join(""):'<div class="empty">No daily expenses yet.</div>';
+}
+function toggleBill(id){const b=data.bills.find(x=>x.id===id);if(b)b.paid=!b.paid;save();render();}
+function deleteBill(id){data.bills=data.bills.filter(x=>x.id!==id);save();render();}
+function deleteExpense(id){data.expenses=data.expenses.filter(x=>x.id!==id);save();render();}
+function formatDate(v){if(!v)return"—";return new Date(v+"T00:00:00").toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"});}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+render();
+</script>
+</body>
+</html>
